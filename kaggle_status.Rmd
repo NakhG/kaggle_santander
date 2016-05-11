@@ -1,0 +1,63 @@
+---
+output: pdf_document
+---
+# Kaggle Competition  
+### Predicting customer dissatisfaction for Santander bank
+### George Nakhleh, Gao (Chloe) Yaqiong, Sriram Yarlagadda
+*[Read about the challenge: Kaggle](https://www.kaggle.com/c/santander-customer-satisfaction)*  
+  
+This dataset has about 370 variables, trying to predict whether or not a customer is dissatisfied  
+
+We cleaned up the data by dropping columns w/ constant values and duplicate columns.
+
+```{r, eval=FALSE}
+#PREPROCESSING
+#Removing duplicate columns and constant columns
+
+#load training dataset
+santander_training <- read.csv("~/kaggle_santander/train.csv")
+
+#load in testing dataset
+santander_testing <- read.csv("~/kaggle_santander/test.csv")
+
+#combine the data before cleaning
+all_data <- rbind(santander_training[,-371], santander_testing)
+
+#find those columns where variance is 0
+all_data.no_constants <- all_data[ , apply(all_data, 2, var, na.rm=TRUE) != 0]
+
+#Cleaning training sample
+#Drop any columns with a constant value (ie 1's all the way down)
+
+all_data.cleaned <- all_data.no_constants[!duplicated(lapply(all_data.no_constants, c))]
+```
+  
+Also, we dropped columns that were highly correlated (>0.85) to one another.  
+```{r, eval=FALSE}
+#Try dropping variables that are highly correlated to one another (>0.85)
+install.packages("caret")
+library(caret)
+correlation_matrix <- cor(all_data.cleaned[,1:308])
+highly_correlated <- findCorrelation(correlation_matrix, cutoff=0.85)
+print(highly_correlated) #we see the flagged columns, but we didn't yet delete them
+
+#remove these highly correlated variables
+santander_subset <- all_data.cleaned[, -c(highly_correlated)]
+```
+  
+Split back into training and testing, and got a sample  
+```{r, eval=FALSE}
+santander_train.clean2 <- santander_subset[1:nrow(santander_training), ]; santander_train.clean2$TARGET <- santander_training$TARGET
+santander_test.clean2 <- santander_subset[(nrow(santander_testing) + 1):nrow(santander_subset), ]
+rm(santander_training, santander_testing)
+
+#create sample of training data for model building
+sample_set2 <- sample_frac(santander_train.clean2, 0.8, replace = TRUE) 
+
+```
+  
+Now that the data is clean, we're trying to find ways to perform **feature selection**, but runtime is too long.  
+
+Things we've used: stepwise regression, ["Boruta"](http://www.r-bloggers.com/feature-selection-all-relevant-selection-with-the-boruta-package-2/) package, but nothing finished in a timely manner  
+
+### This is where we're stuck, HALP!
