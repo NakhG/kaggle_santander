@@ -46,17 +46,19 @@ write.csv(combined_sample, 'combined_sample.csv')
 #what's it mean mathematically to be a constant row?
 #variance is zero
 
-#combined_noconstants <- combined_df[ , apply(combined_df, 2, var, na.rm=TRUE) != 0]
+#this returns a warning: NAs introduced by coercion
+combined_noconstants <- combined_df[ , apply(combined_df, 2, var, na.rm=TRUE) > 0]
+#verify
+colnames(combined_df[ , apply(combined_df, 2, var, na.rm=TRUE) == 0])
 
-constant_remover <- function(dat){
-  for (i in colnames(dat)){
-    print(var(dat$i))
-  }
-}
+combined_noconstants <- data.frame(combined_noconstants)
+class(combined_noconstants)
 
-constant_remover(combined_df) #doesn't work
-#THIS IS WHERE I STOPPED: Trying to remove constants in a way that was clear to me
-#if that doesn't work, the commented out function above works
+#if the only unique values in a column are 0 and 1, make it a factor variable
+#pseudo code: what are the columns that have 2 unique values? cast those columns to be factors
+#how do i do this?
+
+#where are the columns w/ only 2 unique values?
 
 
-#turn all binaries into 
+#THIS IS WHERE I STOPPED: Trying to transform variables w/ only 2 unique values into factor type
