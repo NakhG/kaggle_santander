@@ -46,17 +46,42 @@ write.csv(combined_sample, 'combined_sample.csv')
 #what's it mean mathematically to be a constant row?
 #variance is zero
 
-#combined_noconstants <- combined_df[ , apply(combined_df, 2, var, na.rm=TRUE) != 0]
+#this returns a warning: NAs introduced by coercion
+combined_noconstants <- combined_df[ , apply(combined_df, 2, var, na.rm=TRUE) > 0]
+#verify
+colnames(combined_df[ , apply(combined_df, 2, var, na.rm=TRUE) == 0])
 
-constant_remover <- function(dat){
-  for (i in colnames(dat)){
-    print(var(dat$i))
+combined_noconstants <- data.frame(combined_noconstants)
+class(combined_noconstants)
+
+#if the only unique values in a column are 0 and 1, make it a factor variable
+#pseudo code: what are the columns that have 2 unique values? cast those columns to be factors
+#how do i do this?
+
+#where are the columns w/ less than 25 unique values?
+column_factorizer <- function(d){
+  for (column in 1:ncol(d)){
+    if (class(d[,column]) == "integer"){
+      if (length(unique(d[,column])) < 20){
+        d[,column] <- as.factor(d[,column])
+      }
+    }
   }
+  return (d)
 }
 
-constant_remover(combined_df) #doesn't work
-#THIS IS WHERE I STOPPED: Trying to remove constants in a way that was clear to me
-#if that doesn't work, the commented out function above works
+combined_noconst_factorized <- column_factorizer(combined_noconstants)
+class(combined_noconst_factorized)
+
+#more cleaning: remove columns that are highly correlated w/ other columns
+#how?
+
+#Below code doesn't work.
+#cor_mat <- cor(na.omit(combined_noconst_factorized))
+
+install.packages("caret") ; library(caret)
+
+cols_to_remove <- findCorrelation(cor_mat, cutoff=0.9, verbose=FALSE, names= TRUE)
 
 
-#turn all binaries into 
+#LEFT OFF HERE: need to fix cor() function 
