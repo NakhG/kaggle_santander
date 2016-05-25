@@ -8,13 +8,13 @@ library(dplyr)
 #read in the dataset and make a smaller sample ...
 #to review in Excel
 
-df <- read.csv("C:\\Users\\gnakhleh\\Documents\\train.csv")
+df <- read.csv("C:\\Users\\gnakhleh\\Documents\\kaggle_santander\\train.csv")
 df_sample <- sample_n(df, 1000, replace=TRUE)
 write.csv(df_sample, "train_sample.csv")
 
 #load in test dataset too, to inspect
 
-df_test <- read.csv('C:\\Users\\gnakhleh\\Documents\\test.csv')
+df_test <- read.csv('C:\\Users\\gnakhleh\\Documents\\kaggle_santander\\test.csv')
 dim(df_test)
 df_test_sample <- sample_n(df_test, 1000, replace=TRUE)
 write.csv(df_test_sample, 'test_sample.csv')
@@ -54,6 +54,28 @@ colnames(combined_df[ , apply(combined_df, 2, var, na.rm=TRUE) == 0])
 combined_noconstants <- data.frame(combined_noconstants)
 class(combined_noconstants)
 
+install.packages("caret") ; library(caret)
+
+#OK
+#so column w/ 'train' and 'test' messes up 
+# ... after removing constants
+#corr table won't work on non-numeric data
+
+#PLAN:
+#make a df of just numeric data of no_constants
+
+numeric_columns <- combined_noconstants %>% select(which(sapply(., is.numeric)))
+remove(numeric_cols)
+
+#use this thing to make the corr
+corr_mat <- cor(numeric_columns)
+cols_to_remove <- findCorrelation(corr_mat, cutoff=0.75)
+
+combined_nocorr <- combined_noconstants[, -c(cols_to_remove)]
+
+#so we went from no constants, to no correlation
+#so NOW we do the factorization
+
 #if the only unique values in a column are 0 and 1, make it a factor variable
 #pseudo code: what are the columns that have 2 unique values? cast those columns to be factors
 #how do i do this?
@@ -70,18 +92,34 @@ column_factorizer <- function(d){
   return (d)
 }
 
-combined_noconst_factorized <- column_factorizer(combined_noconstants)
-class(combined_noconst_factorized)
+combined_factorized <- column_factorizer(combined_nocorr)
+combined_factorized.update <- merge(x=combined_df.id_dataset, y=combined_factorized, by="ID")
 
-#more cleaning: remove columns that are highly correlated w/ other columns
-#how?
+combined_df.id_dataset <- select(combined_df, ID, dataset)
+dim(combined_df.id_dataset)
 
-#Below code doesn't work.
-#cor_mat <- cor(na.omit(combined_noconst_factorized))
+#THERE we go: the dataset we want is combined_facotrized.update
+training_cleaned <- filter(combined_factorized.update, dataset=="train")
 
-install.packages("caret") ; library(caret)
+#remove so much of this
+remove(combined_nocorr, combined_noconst_factorized, combined_df, numeric_columns, cor_mat, corr_mat)
 
-cols_to_remove <- findCorrelation(cor_mat, cutoff=0.9, verbose=FALSE, names= TRUE)
+#make a sample for analysis
+set.seed(501)
+train_index <- createDataPartition(training_cleaned$TARGET, p=0.7, list=FALSE, times=1)
+santander_train <- training_cleaned[train_index, ]
+santander_test <- training_cleaned[-train_index, ]
+
+head(santander_train)
 
 
-#LEFT OFF HERE: need to fix cor() function 
+#ok, so we have the data we want
+#how can we determine the best predictors?
+# PCA?
+
+numeric_columns <- santander_train %>% select(which(sapply(., is.numeric)))
+
+#do stepwise selection on these numeric columns
+
+library(MASS)
+full_model <- glm(TARGET ~ ., family=binomial(logit), data=santander_train) 
